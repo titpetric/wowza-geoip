@@ -50,7 +50,8 @@ public class GeoIP extends ModuleBase
 		// resolve country by ip
 		String CountryCode = "--";
 		try {
-			LookupService cl = new LookupService("/usr/share/GeoIP/GeoIP.dat", LookupService.GEOIP_MEMORY_CACHE);
+			String GeoIPDatabase = ServerSideParameters.getPropertyStr("GeoIPDatabase","/usr/share/GeoIP/GeoIP.dat");
+			LookupService cl = new LookupService(GeoIPDatabase, LookupService.GEOIP_MEMORY_CACHE);
 			CountryCode = cl.getCountry(IPAddress).getCode();
 			getLogger().info("GEO Country: "+IPAddress+" => "+CountryCode);
 		} catch(Exception e) {

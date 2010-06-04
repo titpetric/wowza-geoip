@@ -40,6 +40,16 @@
 				<Type>String</Type>
 			</Property>
 
+			<!-- GeoIPDatabase: default location: /usr/share/GeoIP/GeoIP.dat
+
+			<Property>
+				<Name>GeoIPDatabase</Name>
+				<Value>/path/to/your/GeoIP.dat</Value>
+				<Type>String</Type>
+			</Property>
+
+			-->
+
 			<!-- snip -->
 
 		</Properties>
