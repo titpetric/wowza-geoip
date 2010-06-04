@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LocationInfo>
+	<Location path="def/" restrict="none"/>
+	<Location path="slovenia/" restrict="all">
+		<Except country="SI"/>
+	</Location>
+	<Location path="usa/" restrict="all">
+		<Except country="US"/>
+	</Location>
+</LocationInfo>

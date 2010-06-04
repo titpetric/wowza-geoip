@@ -1,0 +1,49 @@
+<Root>
+	<Application>
+
+		<!-- snip -->
+
+		<Modules>
+
+			<!-- snip -->
+
+			<Module>
+				<Name>geoip</Name>
+				<Description>GeoIP</Description>
+				<Class>com.monotek.wms.module.GeoIP</Class>
+			</Module>
+
+			<!-- snip -->
+
+		</Modules>
+
+		<Properties>
+
+			<!-- snip -->
+
+			<!-- GeolocationDefaultRestrict: 0 = don't restrict by default, 1 = restrict by default -->
+			<Property>
+				<Name>GeolocationDefaultRestrict</Name>
+				<Value>0</Value>
+				<Type>Integer</Type>
+			</Property>
+			<!-- If GeolocationDefaultRestrict = 1, and xml config is missing/invalid, restrict to this country -->
+			<Property>
+				<Name>GeolocationDefaultRestrictCountry</Name>
+				<Value>US</Value>
+				<Type>String</Type>
+			</Property>
+			<!-- GeolocationConfigFile: absolute path to config file -->
+			<Property>
+				<Name>GeolocationConfigFile</Name>
+				<Value>/mnt/vod/locationinfo.xml</Value>
+				<Type>String</Type>
+			</Property>
+
+			<!-- snip -->
+
+		</Properties>
+
+	</Application>
+
+</Root>
