@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<project name="GeoBlockingWS" default="jar">
+	
+	<property environment="env"/>
+
+	<property name="app.home" value="com.monotek.wms.module.GeoIP"/>
+
+	<property name="linux.wowza.lib.dir" value="/usr/local/WowzaMediaServer/lib"/>
+	
+	<property name="src.dir" location="src"/>
+	<property name="build.dir" location="build"/>
+	<property name="jar.filename" value="geoip.jar"/>
+
+	<target name="compile">
+		<javac srcdir="${src.dir}" debug="true" destdir="${build.dir}">
+			<classpath>
+				<pathelement path="${linux.wowza.lib.dir}/wms-server.jar" />
+				<pathelement path="${linux.wowza.lib.dir}/log4j-1.2.15.jar" />
+			</classpath>
+		</javac>		
+	</target>
+
+	<target name="jar" depends="compile">
+		<jar jarfile="${linux.wowza.lib.dir}/${jar.filename}">
+			<fileset dir="${build.dir}">
+			</fileset>
+		</jar>
+	</target>
+	
+</project>
