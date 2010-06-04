@@ -11,7 +11,12 @@
 	<property name="build.dir" location="build"/>
 	<property name="jar.filename" value="geoip.jar"/>
 
-	<target name="compile">
+	<!-- chdir to scripts/ and run ./get_maxmind_geoip_api to download and extract needed files. -->
+	<target name="geoip">
+		<javac srcdir="scripts/GeoIPJava-1.2.3/source" debug="true" destdir="${build.dir}"/>
+	</target>
+
+	<target name="compile" depends="geoip">
 		<javac srcdir="${src.dir}" debug="true" destdir="${build.dir}">
 			<classpath>
 				<pathelement path="${linux.wowza.lib.dir}/wms-server.jar" />
