@@ -1,0 +1,9 @@
+wowza-geoip
+
+This is a server side module for Wowza Media Server 2.1.0+
+allowing you to limig live & vod streams to one or many
+geographic locations, based on Maxmind's GeoIP API.
+
+The locations you wish to limit are specified in a
+separate config xml file, which is reloaded on each
+change, so it doesn't require a Wowza server restart.
