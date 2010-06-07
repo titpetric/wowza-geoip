@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LocationInfo>
+	<!-- Location: path = stream name or folder (for vod), restrict = [all|none] -->
 	<Location path="def/" restrict="none"/>
 	<Location path="slovenia/" restrict="all">
+		<!-- Except: country = http://www.maxmind.com/app/iso3166 -->
 		<Except country="SI"/>
 	</Location>
 	<Location path="usa/" restrict="all">
