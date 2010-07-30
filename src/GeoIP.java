@@ -33,6 +33,8 @@ public class GeoIP extends ModuleBase
 	private static long LocationInfoLastModified = 0;
 	private static Document LocationInfo;
 
+	private static ClientLookupService lookup;
+
 	public void onStreamCreate(IMediaStream stream)
 	{
 		stream.addClientListener(new StreamListener());
@@ -40,22 +42,10 @@ public class GeoIP extends ModuleBase
 
 	public boolean allowPlayback(String streamName, String IPAddress)
 	{
-		// default playback restrictions
+		// default playback restrictions (if xml config is broken)
 		boolean allowPlayback = true;
-		String DefaultRestrictCountry = ServerSideParameters.getPropertyStr("GeolocationDefaultRestrictCountry");
 		if (ServerSideParameters.getPropertyInt("GeolocationDefaultRestrict",0)==1) {
 			allowPlayback = false;
-		}
-
-		// resolve country by ip
-		String CountryCode = "--";
-		try {
-			String GeoIPDatabase = ServerSideParameters.getPropertyStr("GeoIPDatabase","/usr/share/GeoIP/GeoIP.dat");
-			LookupService cl = new LookupService(GeoIPDatabase, LookupService.GEOIP_MEMORY_CACHE);
-			CountryCode = cl.getCountry(IPAddress).getCode();
-			getLogger().info("GEO Country: "+IPAddress+" => "+CountryCode);
-		} catch(Exception e) {
-			getLogger().info("GeoIP database problem");
 		}
 
 		// read config file
@@ -81,6 +71,7 @@ public class GeoIP extends ModuleBase
 			LocationInfo = null;
 		}
 
+		// log last modified time for updates
 		LocationInfoLastModified = lastModified;
 
 		getLogger().info("GEO: Checking stream name: " + streamName);
@@ -92,45 +83,107 @@ public class GeoIP extends ModuleBase
 				Element child = (Element)locations.item(childNum);
 				String locPath = child.getAttributes().getNamedItem("path").getNodeValue();
 				String locRestrict = child.getAttributes().getNamedItem("restrict").getNodeValue();
-				// find current location of streamed file
+
 				if (streamName.length() > locPath.length() && streamName.startsWith(locPath)) {
 					getLogger().info("GEO Location found: " + locPath + " restricted='" + locRestrict + "'");
-					allowPlayback = locRestrict.equals("none");
+
+					allowPlayback = false;
 
 					// get exceptions to base restriction
 					NodeList exceptions = child.getElementsByTagName("Except");
 					for (int exceptNum = 0; exceptNum < exceptions.getLength(); exceptNum++) {
 						Element child2 = (Element)exceptions.item(exceptNum);
-						String exceptCountry = child2.getAttributes().getNamedItem("country").getNodeValue();
-						if (CountryCode.equals(exceptCountry)) {
-							// invert base restriction
-							getLogger().info("GEO Except "+exceptCountry+" / is matched!");
-							allowPlayback = !allowPlayback;
-							break;
-						} else {
-							getLogger().info("GEO Except "+exceptCountry+" / not matched");
+						String exceptType = child2.getAttributes().getNamedItem("type").getNodeValue();
+						String exceptValue = child2.getFirstChild().getNodeValue();
+
+						getLogger().info("    Except type: " + exceptType + " value='" + exceptValue + "'");
+
+						// validate country
+						if (exceptType.equals("country")) {
+							if (lookup.ValidateCountry(IPAddress, exceptValue)) {
+								getLogger().info("    > Validated country ("+exceptValue+")");
+								allowPlayback = true;
+								break;
+							}
+						}
+
+						// validate country
+						if (exceptType.equals("ip")) {
+							if (IPAddress.equals(exceptValue)) {
+								getLogger().info("    > Validated IP ("+exceptValue+")");
+								allowPlayback = true;
+							}
 						}
 					}
+					// reverse restrictions
+					if (locRestrict.equals("none")) {
+						allowPlayback = !allowPlayback;
+					}
+					// Some valuable info for the debug console
 					if (allowPlayback) {
-						getLogger().info("GEO NOT Restricting playback.");
+						getLogger().info("GEO1 NOT Restricting playback.");
 					} else {
-						getLogger().info("GEO RESTRICTING playback.");
+						getLogger().info("GEO1 RESTRICTING playback.");
 					}
 					return allowPlayback;
 				}
 			}
 		}
-		if (!allowPlayback && CountryCode.startsWith(DefaultRestrictCountry)) {
+
+		// Restrict to default country configured in Application.xml
+		String DefaultRestrictCountry = ServerSideParameters.getPropertyStr("GeolocationDefaultRestrictCountry");
+		if (!allowPlayback && lookup.ValidateCountry(IPAddress, DefaultRestrictCountry)) {
 			allowPlayback = !allowPlayback;
 		}
+
+		// Some valuable info for the debug console
 		if (allowPlayback) {
 			getLogger().info("GEO2 NOT Restricting playback.");
 		} else {
 			getLogger().info("GEO2 RESTRICTING playback.");
 		}
+
 		return allowPlayback;
 	}
 
+	/** Takes care of GeoIP database lookups for our purposes */
+	class ClientLookupService
+	{
+		/** Static GeoIP lookup object and service status */
+		private LookupService GeoIPLookupService;
+		private boolean GeoIPServiceStatus;
+
+		/** Constructor */
+		public ClientLookupService(String GeoIPDatabase)
+		{
+			GeoIPServiceStatus = true;
+			try {
+				GeoIPLookupService = new LookupService(GeoIPDatabase, LookupService.GEOIP_MEMORY_CACHE);
+			} catch (Exception e) {
+				GeoIPServiceStatus = false;
+			}
+		}
+
+		/** Returns status of GeoIP database */
+		public boolean GetStatus()
+		{
+			return GeoIPServiceStatus;
+		}
+
+		/** Validate Country code against IPAdress's country code */
+		public boolean ValidateCountry(String IPAddress, String CountryCode)
+		{
+			String IPCountryCode = "--";
+			try {
+				IPCountryCode = GeoIPLookupService.getCountry(IPAddress).getCode();
+			} catch (Exception e) {
+				return false;
+			}
+			return IPCountryCode.equals(CountryCode);
+		}
+	}
+
+	/** Glue for each client stream */
 	class StreamListener implements IMediaStreamActionNotify
 	{
 		public void onPlay(IMediaStream stream, String streamName, double playStart, double playLen, int playReset)
@@ -139,6 +192,7 @@ public class GeoIP extends ModuleBase
 			String ClientIP = ClientTMP.getIp();
 
 			if (!allowPlayback(streamName, ClientIP)) {
+				// @todo: figure out how to redirect stream or notify player of geoip/access restrictions
 				ClientTMP.setShutdownClient(true);
 			}
 		}
@@ -153,7 +207,15 @@ public class GeoIP extends ModuleBase
 	public void onAppStart(IApplicationInstance appInstance) {
 		String fullname = appInstance.getApplication().getName() + "/" + appInstance.getName();
 		getLogger().info("onAppStart: " + fullname);
+
 		// Extract the parameters and save them to global variable
-		ServerSideParameters = appInstance.getProperties();	
+		ServerSideParameters = appInstance.getProperties();
+
+		// Configure our GeoIP lookup service
+		String GeoIPDatabase = ServerSideParameters.getPropertyStr("GeoIPDatabase","/usr/share/GeoIP/GeoIP.dat");
+		lookup = new ClientLookupService(GeoIPDatabase);
+		if (!lookup.GetStatus()) {
+			getLogger().error("GeoIP ClientLookupService - GeoIPDatabase problem!");
+		}
 	}
 }

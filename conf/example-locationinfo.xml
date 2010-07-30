@@ -4,9 +4,11 @@
 	<Location path="def/" restrict="none"/>
 	<Location path="slovenia/" restrict="all">
 		<!-- Except: country = http://www.maxmind.com/app/iso3166 -->
-		<Except country="SI"/>
+		<Except type="country">SI</Except>
+		<!-- IP exception -->
+		<Except type="ip">127.0.0.1</Except>
 	</Location>
 	<Location path="usa/" restrict="all">
-		<Except country="US"/>
+		<Except type="country">US</Except>
 	</Location>
 </LocationInfo>
