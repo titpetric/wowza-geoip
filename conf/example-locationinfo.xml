@@ -3,10 +3,15 @@
 	<!-- Location: path = stream name or folder (for vod), restrict = [all|none] -->
 	<Location path="def/" restrict="none"/>
 	<Location path="slovenia/" restrict="all">
-		<!-- Except: country = http://www.maxmind.com/app/iso3166 -->
-		<Except type="country">SI</Except>
 		<!-- IP exception -->
 		<Except type="ip">127.0.0.1</Except>
+		<!-- Netmask exceptions: CIDR -->
+		<Except type="netmask">10.0.0.0/8</Except>
+		<Except type="netmask">172.16.0.0/12</Except>
+		<!-- Netmask exceptions: subnet -->
+		<Except type="netmask">192.168.0.0/255.255.0.0</Except>
+		<!-- Except: country = http://www.maxmind.com/app/iso3166 -->
+		<Except type="country">SI</Except>
 	</Location>
 	<Location path="usa/" restrict="all">
 		<Except type="country">US</Except>
