@@ -91,7 +91,9 @@ public class GeoIP extends ModuleBase
 				String locPath = child.getAttributes().getNamedItem("path").getNodeValue();
 				String locRestrict = child.getAttributes().getNamedItem("restrict").getNodeValue();
 
-				boolean validPath = false;
+				// default: path starts with location name
+				boolean validPath = streamName.startsWith(locPath);
+
 				// regex paths
 				if (child.getAttributes().getNamedItem("type") != null && child.getAttributes().getNamedItem("type").getNodeValue().equals("regex")) {
 					// cache compiled regex
@@ -99,13 +101,11 @@ public class GeoIP extends ModuleBase
 						logDebug("Compiling regex pattern: '"+locPath+"'");
 						regex_pool.put(locPath, Pattern.compile(locPath));
 					}
+					// match regex
 					validPath = regex_pool.get(locPath).matcher(streamName).find();
-				} else {
-					// default "path*"
-					validPath = streamName.startsWith(locPath);
 				}
 
-				if (streamName.length() > locPath.length() && validPath) {
+				if (validPath) {
 					logDebug("Location found: " + locPath + " restricted='" + locRestrict + "'");
 
 					allowPlayback = false;
