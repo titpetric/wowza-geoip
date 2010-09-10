@@ -13,6 +13,7 @@ import java.io.InputStream;
 import java.io.File;
 
 import java.util.*;
+import java.util.regex.*;
 
 import com.wowza.wms.module.*;
 import com.wowza.wms.application.*;
@@ -34,8 +35,10 @@ public class GeoIP extends ModuleBase
 	private static long LocationInfoLastModified = 0;
 	private static Document LocationInfo;
 
-	private String ConfigFile;
-	private boolean debug = false;
+	private static String ConfigFile;
+	private static boolean debug = false;
+
+	private static Map<String,Pattern> regex_pool = new HashMap<String,Pattern>();
 
 	private static GeoIPLookupService geoip_lookup;
 	private static NetMaskLookupService netmask_lookup;
@@ -88,7 +91,21 @@ public class GeoIP extends ModuleBase
 				String locPath = child.getAttributes().getNamedItem("path").getNodeValue();
 				String locRestrict = child.getAttributes().getNamedItem("restrict").getNodeValue();
 
-				if (streamName.length() > locPath.length() && streamName.startsWith(locPath)) {
+				boolean validPath = false;
+				// regex paths
+				if (child.getAttributes().getNamedItem("type") != null && child.getAttributes().getNamedItem("type").getNodeValue().equals("regex")) {
+					// cache compiled regex
+					if (!regex_pool.containsKey(locPath)) {
+						logDebug("Compiling regex pattern: '"+locPath+"'");
+						regex_pool.put(locPath, Pattern.compile(locPath));
+					}
+					validPath = regex_pool.get(locPath).matcher(streamName).find();
+				} else {
+					// default "path*"
+					validPath = streamName.startsWith(locPath);
+				}
+
+				if (streamName.length() > locPath.length() && validPath) {
 					logDebug("Location found: " + locPath + " restricted='" + locRestrict + "'");
 
 					allowPlayback = false;
@@ -123,7 +140,6 @@ public class GeoIP extends ModuleBase
 								break;
 							}
 						}
-
 					}
 					// reverse restrictions
 					if (locRestrict.equals("none")) {

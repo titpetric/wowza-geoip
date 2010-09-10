@@ -13,7 +13,8 @@
 		<!-- Except: country = http://www.maxmind.com/app/iso3166 -->
 		<Except type="country">SI</Except>
 	</Location>
-	<Location path="usa/" restrict="all">
+	<!-- type="regex" for regular expression paths -->
+	<Location path="(usa|austria|germany)/" type="regex" restrict="all">
 		<Except type="country">US</Except>
 	</Location>
 </LocationInfo>
