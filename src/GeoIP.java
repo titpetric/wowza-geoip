@@ -104,18 +104,9 @@ public class GeoIP extends ModuleBase
 
 						// validate ip
 						if (exceptType.equals("ip")) {
-							if (IPAddress.equals(exceptValue)) {
-								logDebug("    > Validated IP ("+exceptValue+")");
-								allowPlayback = true;
-								break;
-							}
-						}
-
-						// validate netmask
-						if (exceptType.equals("netmask")) {
 							try {
 								if (netmask_lookup.ValidateIP(IPAddress, exceptValue)) {
-									logDebug("    > Validated netmask ("+exceptValue+")");
+									logDebug("    > Validated IP ("+exceptValue+")");
 									allowPlayback = true;
 									break;
 								}

@@ -28,7 +28,7 @@ class NetMaskLookupService
 	/** Validate that IPAddress exists in NetMask address space */
 	public boolean ValidateIP(String IPAddress, String NetMask) throws UnknownHostException, Exception
 	{
-		int ip, network, netmask, cidr;
+		int ip, network, netmask, cidr, tokens = 0;
 
 		// convert IP to int
 		if (!validateInetAddress(IPAddress)) {
@@ -41,6 +41,11 @@ class NetMaskLookupService
 		StringTokenizer nmt = new StringTokenizer(NetMask,"/");
 		while (nmt.hasMoreTokens()) {
 			nm.add(nmt.nextToken());
+			tokens++;
+		}
+		// we have an ip without netmask, assume /32
+		if (tokens==1) {
+			nm.add("32");
 		}
 
 		// network to int
