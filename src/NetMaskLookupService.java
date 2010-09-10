@@ -28,7 +28,7 @@ class NetMaskLookupService
 	/** Validate that IPAddress exists in NetMask address space */
 	public boolean ValidateIP(String IPAddress, String NetMask) throws UnknownHostException, Exception
 	{
-		int ip, network, netmask;
+		int ip, network, netmask, cidr;
 
 		// convert IP to int
 		if (!validateInetAddress(IPAddress)) {
@@ -51,7 +51,7 @@ class NetMaskLookupService
 
 		// generate netmask int from cidr/network notations
 		if (nm.get(1).toString().length() < 3) {
-			int cidr = Integer.parseInt( nm.get(1).toString() );
+			cidr = Integer.parseInt( nm.get(1).toString() );
 			if (!validateCIDR(cidr, NetMask)) {
 				return false;
 			}
@@ -60,9 +60,13 @@ class NetMaskLookupService
 			if (!validateInetAddress(nm.get(1).toString())) {
 				return false;
 			}
+			cidr = Integer.bitCount( toInt(InetAddress.getByName(nm.get(1).toString())) );
 			// if we get 255.127.1.0 it's considered like 255.255.0.0 ... add netmask validation?
-			netmask = 0x80000000 >> (Integer.bitCount( toInt(InetAddress.getByName(nm.get(1).toString())) ) - 1);
 		}
+		if (cidr == 32) {
+			return ip==network;
+		}
+		netmask = 0x80000000 >> (cidr - 1);
 		return ((ip & netmask) == network);
 	}
 
