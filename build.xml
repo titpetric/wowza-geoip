@@ -13,16 +13,17 @@
 
 	<!-- chdir to scripts/ and run ./get_maxmind_geoip_api to download and extract needed files. -->
 	<target name="geoip">
-		<javac srcdir="scripts/GeoIPJava-1.2.3/source" debug="true" destdir="${build.dir}"/>
+		<javac srcdir="scripts/GeoIPJava-1.2.3/source" debug="true" destdir="${build.dir}" includeantruntime="false"/>
 	</target>
 
 	<target name="compile" depends="geoip">
-		<javac srcdir="${src.dir}" debug="true" destdir="${build.dir}">
+		<javac srcdir="${src.dir}" debug="true" destdir="${build.dir}" includeantruntime="false">
 			<classpath>
 				<pathelement path="${linux.wowza.lib.dir}/wms-server.jar" />
 				<pathelement path="${linux.wowza.lib.dir}/log4j-1.2.15.jar" />
 			</classpath>
-		</javac>		
+			<compilerarg value="-Xlint:unchecked"/>
+		</javac>
 	</target>
 
 	<target name="jar" depends="compile">

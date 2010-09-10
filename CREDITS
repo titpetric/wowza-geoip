@@ -1,0 +1,28 @@
+THANKS
+======
+
+Gorazd Zagar
+------------
+
+The original author of a GeoIP module example for Wowza.
+This wouldn't have been possible without your example! ;)
+
+
+Alexander Moskalenko
+--------------------
+
+A patch author adding additional features like:
+
+	* netmask/cidr support (rewriten completely)
+	* use of wowza env variables
+	* geoip debug variable to control verbosity
+	* regex support for locations in geo.xml (todo - might be overkill)
+
+This was almost completely rewritten to clean up code.
+Thank you for your contribution!
+
+
+Wowza community
+---------------
+
+Thanks for your support, comments and encouragement!
