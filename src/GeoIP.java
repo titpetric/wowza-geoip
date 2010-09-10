@@ -25,15 +25,14 @@ import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.w3c.dom.*;
 
-import com.maxmind.geoip.*;
-
 public class GeoIP extends ModuleBase
 {
 	public static WMSProperties ServerSideParameters;
 	private static long LocationInfoLastModified = 0;
 	private static Document LocationInfo;
 
-	private static ClientLookupService lookup;
+	private static GeoIPLookupService geoip_lookup;
+	private static NetMaskLookupService netmask_lookup;
 
 	public void onStreamCreate(IMediaStream stream)
 	{
@@ -98,22 +97,37 @@ public class GeoIP extends ModuleBase
 
 						getLogger().info("    Except type: " + exceptType + " value='" + exceptValue + "'");
 
+						// validate ip
+						if (exceptType.equals("ip")) {
+							if (IPAddress.equals(exceptValue)) {
+								getLogger().info("    > Validated IP ("+exceptValue+")");
+								allowPlayback = true;
+								break;
+							}
+						}
+
+						// validate netmask
+						if (exceptType.equals("netmask")) {
+							try {
+								if (netmask_lookup.ValidateIP(IPAddress, exceptValue)) {
+									getLogger().info("    > Validated netmask ("+exceptValue+")");
+									allowPlayback = true;
+									break;
+								}
+							} catch (Exception e) {
+								getLogger().error(e.toString());
+							}
+						}
+
 						// validate country
 						if (exceptType.equals("country")) {
-							if (lookup.ValidateCountry(IPAddress, exceptValue)) {
+							if (geoip_lookup.ValidateCountry(IPAddress, exceptValue)) {
 								getLogger().info("    > Validated country ("+exceptValue+")");
 								allowPlayback = true;
 								break;
 							}
 						}
 
-						// validate country
-						if (exceptType.equals("ip")) {
-							if (IPAddress.equals(exceptValue)) {
-								getLogger().info("    > Validated IP ("+exceptValue+")");
-								allowPlayback = true;
-							}
-						}
 					}
 					// reverse restrictions
 					if (locRestrict.equals("none")) {
@@ -132,7 +146,7 @@ public class GeoIP extends ModuleBase
 
 		// Restrict to default country configured in Application.xml
 		String DefaultRestrictCountry = ServerSideParameters.getPropertyStr("GeolocationDefaultRestrictCountry");
-		if (!allowPlayback && lookup.ValidateCountry(IPAddress, DefaultRestrictCountry)) {
+		if (!allowPlayback && geoip_lookup.ValidateCountry(IPAddress, DefaultRestrictCountry)) {
 			allowPlayback = !allowPlayback;
 		}
 
@@ -144,43 +158,6 @@ public class GeoIP extends ModuleBase
 		}
 
 		return allowPlayback;
-	}
-
-	/** Takes care of GeoIP database lookups for our purposes */
-	class ClientLookupService
-	{
-		/** Static GeoIP lookup object and service status */
-		private LookupService GeoIPLookupService;
-		private boolean GeoIPServiceStatus;
-
-		/** Constructor */
-		public ClientLookupService(String GeoIPDatabase)
-		{
-			GeoIPServiceStatus = true;
-			try {
-				GeoIPLookupService = new LookupService(GeoIPDatabase, LookupService.GEOIP_MEMORY_CACHE);
-			} catch (Exception e) {
-				GeoIPServiceStatus = false;
-			}
-		}
-
-		/** Returns status of GeoIP database */
-		public boolean GetStatus()
-		{
-			return GeoIPServiceStatus;
-		}
-
-		/** Validate Country code against IPAdress's country code */
-		public boolean ValidateCountry(String IPAddress, String CountryCode)
-		{
-			String IPCountryCode = "--";
-			try {
-				IPCountryCode = GeoIPLookupService.getCountry(IPAddress).getCode();
-			} catch (Exception e) {
-				return false;
-			}
-			return IPCountryCode.equals(CountryCode);
-		}
 	}
 
 	/** Glue for each client stream */
@@ -211,11 +188,14 @@ public class GeoIP extends ModuleBase
 		// Extract the parameters and save them to global variable
 		ServerSideParameters = appInstance.getProperties();
 
+		// Spawn netmask lookup service
+		netmask_lookup = new NetMaskLookupService();
+
 		// Configure our GeoIP lookup service
 		String GeoIPDatabase = ServerSideParameters.getPropertyStr("GeoIPDatabase","/usr/share/GeoIP/GeoIP.dat");
-		lookup = new ClientLookupService(GeoIPDatabase);
-		if (!lookup.GetStatus()) {
-			getLogger().error("GeoIP ClientLookupService - GeoIPDatabase problem!");
+		geoip_lookup = new GeoIPLookupService(GeoIPDatabase);
+		if (!geoip_lookup.GetStatus()) {
+			getLogger().error("GeoIP LookupService - GeoIPDatabase problem!");
 		}
 	}
 }
