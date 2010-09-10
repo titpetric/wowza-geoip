@@ -12,10 +12,13 @@ import java.io.InputStreamReader;
 import java.io.InputStream;
 import java.io.File;
 
+import java.util.*;
+
 import com.wowza.wms.module.*;
 import com.wowza.wms.application.*;
 import com.wowza.wms.stream.*;
 import com.wowza.wms.client.*;
+import com.wowza.util.*;
 
 import java.net.URL;
 import java.net.URLConnection;
@@ -30,6 +33,9 @@ public class GeoIP extends ModuleBase
 	public static WMSProperties ServerSideParameters;
 	private static long LocationInfoLastModified = 0;
 	private static Document LocationInfo;
+
+	private String ConfigFile;
+	private boolean debug = false;
 
 	private static GeoIPLookupService geoip_lookup;
 	private static NetMaskLookupService netmask_lookup;
@@ -48,14 +54,13 @@ public class GeoIP extends ModuleBase
 		}
 
 		// read config file
-		String ConfigFile = ServerSideParameters.getPropertyStr("GeolocationConfigFile");
 		File file = new File(ConfigFile);
 		long lastModified = 0;
 		try {
 			// reload if modified since last load
 			lastModified = file.lastModified();
 			if (lastModified != LocationInfoLastModified) {
-				getLogger().info("GEO: Reading "+ConfigFile+".");
+				getLogger().info("geoip.allowPlayback.config: Reading "+ConfigFile+".");
 				LocationInfo = null;
 				DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 				DocumentBuilder db = dbf.newDocumentBuilder();
@@ -63,17 +68,17 @@ public class GeoIP extends ModuleBase
 			}
 
 		} catch (java.io.IOException e) {
-			getLogger().info("GEO: File "+ConfigFile+" doesn't exist.");
+			getLogger().warn("geoip.allowPlayback.config: File "+ConfigFile+" doesn't exist.");
 			LocationInfo = null;
 		} catch (Exception e) {
-			getLogger().info("GEO: Problem parsing "+ConfigFile+" file.");
+			getLogger().warn("geoip.allowPlayback.config: Problem parsing "+ConfigFile+" file.");
 			LocationInfo = null;
 		}
 
 		// log last modified time for updates
 		LocationInfoLastModified = lastModified;
 
-		getLogger().info("GEO: Checking stream name: " + streamName);
+		logDebug("Checking stream: " + streamName + " / IP: " + IPAddress);
 
 		if (LocationInfo != null) {
 			// we have a DOM structure, go trough locations.
@@ -84,7 +89,7 @@ public class GeoIP extends ModuleBase
 				String locRestrict = child.getAttributes().getNamedItem("restrict").getNodeValue();
 
 				if (streamName.length() > locPath.length() && streamName.startsWith(locPath)) {
-					getLogger().info("GEO Location found: " + locPath + " restricted='" + locRestrict + "'");
+					logDebug("Location found: " + locPath + " restricted='" + locRestrict + "'");
 
 					allowPlayback = false;
 
@@ -95,12 +100,12 @@ public class GeoIP extends ModuleBase
 						String exceptType = child2.getAttributes().getNamedItem("type").getNodeValue();
 						String exceptValue = child2.getFirstChild().getNodeValue();
 
-						getLogger().info("    Except type: " + exceptType + " value='" + exceptValue + "'");
+						logDebug("    Except type: " + exceptType + " value='" + exceptValue + "'");
 
 						// validate ip
 						if (exceptType.equals("ip")) {
 							if (IPAddress.equals(exceptValue)) {
-								getLogger().info("    > Validated IP ("+exceptValue+")");
+								logDebug("    > Validated IP ("+exceptValue+")");
 								allowPlayback = true;
 								break;
 							}
@@ -110,7 +115,7 @@ public class GeoIP extends ModuleBase
 						if (exceptType.equals("netmask")) {
 							try {
 								if (netmask_lookup.ValidateIP(IPAddress, exceptValue)) {
-									getLogger().info("    > Validated netmask ("+exceptValue+")");
+									logDebug("    > Validated netmask ("+exceptValue+")");
 									allowPlayback = true;
 									break;
 								}
@@ -122,7 +127,7 @@ public class GeoIP extends ModuleBase
 						// validate country
 						if (exceptType.equals("country")) {
 							if (geoip_lookup.ValidateCountry(IPAddress, exceptValue)) {
-								getLogger().info("    > Validated country ("+exceptValue+")");
+								logDebug("    > Validated country ("+exceptValue+")");
 								allowPlayback = true;
 								break;
 							}
@@ -135,9 +140,9 @@ public class GeoIP extends ModuleBase
 					}
 					// Some valuable info for the debug console
 					if (allowPlayback) {
-						getLogger().info("GEO1 NOT Restricting playback.");
+						logDebug("GEO1 NOT Restricting playback.");
 					} else {
-						getLogger().info("GEO1 RESTRICTING playback.");
+						logDebug("GEO1 RESTRICTING playback.");
 					}
 					return allowPlayback;
 				}
@@ -152,12 +157,19 @@ public class GeoIP extends ModuleBase
 
 		// Some valuable info for the debug console
 		if (allowPlayback) {
-			getLogger().info("GEO2 NOT Restricting playback.");
+			logDebug("GEO2 NOT Restricting playback.");
 		} else {
-			getLogger().info("GEO2 RESTRICTING playback.");
+			logDebug("GEO2 RESTRICTING playback.");
 		}
 
 		return allowPlayback;
+	}
+
+	void logDebug(String str)
+	{
+		if (debug) {
+			getLogger().info("geoip.debug: " + str);
+		}
 	}
 
 	/** Glue for each client stream */
@@ -183,10 +195,30 @@ public class GeoIP extends ModuleBase
 
 	public void onAppStart(IApplicationInstance appInstance) {
 		String fullname = appInstance.getApplication().getName() + "/" + appInstance.getName();
-		getLogger().info("onAppStart: " + fullname);
+		getLogger().info("geoip.onAppStart: " + fullname);
 
-		// Extract the parameters and save them to global variable
+		// Extract the parameters
 		ServerSideParameters = appInstance.getProperties();
+
+		// Set up environment variables
+		Map<String,String> pathMap = new HashMap<String,String>();
+		pathMap.put("com.wowza.wms.context.VHost", appInstance.getVHost().getName());
+		pathMap.put("com.wowza.wms.context.VHostConfigHome", appInstance.getVHost().getHomePath());
+		pathMap.put("com.wowza.wms.context.Application", appInstance.getApplication().getName());
+		pathMap.put("com.wowza.wms.context.ApplicationInstance", appInstance.getName());
+
+		// Expand config file using environment
+		ConfigFile = ServerSideParameters.getPropertyStr("GeolocationConfigFile");
+		if (ConfigFile == null) {
+			getLogger().error("geoip.onAppStart: Property GeolocationConfigFile is missing.");
+		} else {
+			getLogger().info("geoip.onAppStart: Property GeolocationConfigFile: " + ConfigFile);
+			ConfigFile = SystemUtils.expandEnvironmentVariables(ConfigFile, pathMap);
+			getLogger().info("geoip.onAppStart: Property GeolocationConfigFile: " + ConfigFile);
+		}
+
+		// Set debug value
+		debug = ServerSideParameters.getPropertyBoolean("GeolocationDebug", debug);		
 
 		// Spawn netmask lookup service
 		netmask_lookup = new NetMaskLookupService();
@@ -195,7 +227,7 @@ public class GeoIP extends ModuleBase
 		String GeoIPDatabase = ServerSideParameters.getPropertyStr("GeoIPDatabase","/usr/share/GeoIP/GeoIP.dat");
 		geoip_lookup = new GeoIPLookupService(GeoIPDatabase);
 		if (!geoip_lookup.GetStatus()) {
-			getLogger().error("GeoIP LookupService - GeoIPDatabase problem!");
+			getLogger().error("geoip.onAppStart: GeoIP LookupService - GeoIPDatabase problem!");
 		}
 	}
 }

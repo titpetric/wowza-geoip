@@ -36,9 +36,20 @@
 			<!-- GeolocationConfigFile: absolute path to config file -->
 			<Property>
 				<Name>GeolocationConfigFile</Name>
-				<Value>/mnt/vod/locationinfo.xml</Value>
+				<Value>>${com.wowza.wms.context.VHostConfigHome}/conf/${com.wowza.wms.context.Application}/locationinfo.xml</Value>
 				<Type>String</Type>
 			</Property>
+
+			<!-- GeolocationDebug: turns on/off debugging, default is false
+
+			<Property>
+				<Name>GeolocationDebug</Name>
+				<Value>true</Value>
+				<Type>Boolean</Type>
+			</Property>
+
+			-->
+
 
 			<!-- GeoIPDatabase: default location: /usr/share/GeoIP/GeoIP.dat
 
