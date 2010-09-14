@@ -29,6 +29,10 @@ import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.w3c.dom.*;
 
+// override play
+import com.wowza.wms.amf.*;
+import com.wowza.wms.request.*;
+
 public class GeoIP extends ModuleBase
 {
 	public static WMSProperties ServerSideParameters;
@@ -43,11 +47,10 @@ public class GeoIP extends ModuleBase
 	private static GeoIPLookupService geoip_lookup;
 	private static NetMaskLookupService netmask_lookup;
 
-	public void onStreamCreate(IMediaStream stream)
-	{
-		stream.addClientListener(new StreamListener());
-	}
+	private static boolean streamShutdown = true;
+	private static String streamRemap = "";
 
+	/** Check if IPAddress is allowed to access streamName */
 	public boolean allowPlayback(String streamName, String IPAddress)
 	{
 		// default playback restrictions (if xml config is broken)
@@ -172,32 +175,33 @@ public class GeoIP extends ModuleBase
 		return allowPlayback;
 	}
 
+	/** Playback method, overriden */
+	public void play(IClient client, RequestFunction function, AMFDataList params)
+	{
+		String streamName = getParamString(params, PARAM1);
+		String[] streamNameSplit = streamName.split(":");
+		String ClientIP = client.getIp();
+
+		// Extremists.flv vs. mp4:Extremists.mp4
+		String realStreamName = streamNameSplit.length==1 ? streamNameSplit[0] : streamNameSplit[1];
+		if (!allowPlayback(realStreamName, ClientIP)) {
+			if (streamShutdown) {
+				client.setShutdownClient(true);
+				return;
+			}
+			params.set(PARAM1, streamRemap);
+			logDebug("play - rewriting stream to "+streamRemap);
+		}
+
+		ModuleCore.play(client, function, params);
+	}
+
+	/** Debug logging method */
 	void logDebug(String str)
 	{
 		if (debug) {
 			getLogger().info("geoip.debug: " + str);
 		}
-	}
-
-	/** Glue for each client stream */
-	class StreamListener implements IMediaStreamActionNotify
-	{
-		public void onPlay(IMediaStream stream, String streamName, double playStart, double playLen, int playReset)
-		{
-			IClient ClientTMP = stream.getClient();
-			String ClientIP = ClientTMP.getIp();
-
-			if (!allowPlayback(streamName, ClientIP)) {
-				// @todo: figure out how to redirect stream or notify player of geoip/access restrictions
-				ClientTMP.setShutdownClient(true);
-			}
-		}
-
-		public void onStop(IMediaStream stream) { }
-		public void onSeek(IMediaStream stream, double seek) { }
-		public void onPause(IMediaStream stream,boolean sure,double where) { }
-		public void onUnPublish(IMediaStream stream,String a,boolean b,boolean c) { }
-		public void onPublish(IMediaStream stream,String a,boolean b,boolean c) { }
 	}
 
 	public void onAppStart(IApplicationInstance appInstance) {
@@ -225,7 +229,17 @@ public class GeoIP extends ModuleBase
 		}
 
 		// Set debug value
-		debug = ServerSideParameters.getPropertyBoolean("GeolocationDebug", debug);		
+		debug = ServerSideParameters.getPropertyBoolean("GeolocationDebug", debug);
+
+		// Configure stream action (shutdown or remap to default location)
+		streamShutdown = ServerSideParameters.getPropertyBoolean("GeolocationPlaybackShutdown", true);
+		if (!streamShutdown) {
+			streamRemap = ServerSideParameters.getPropertyStr("GeolocationPlaybackFile");
+			if (streamRemap == null) {
+				getLogger().error("geoip.onAppStart: Property GeolocationPlaybackFile is not set, but GeolocationPlaybackShutdown is False!");
+				streamShutdown = true;
+			}
+		}
 
 		// Spawn netmask lookup service
 		netmask_lookup = new NetMaskLookupService();
