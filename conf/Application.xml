@@ -33,12 +33,45 @@
 				<Value>US</Value>
 				<Type>String</Type>
 			</Property>
+			<!--
+				GeolocationConfigFile path variables
+
+				${com.wowza.wms.AppHome} - Application home directory (test)
+				${com.wowza.wms.ConfigHome} - Configuration home directory (test)
+				${com.wowza.wms.context.VHost} - Virtual host name
+				${com.wowza.wms.context.VHostConfigHome} - Virtual host config directory
+				${com.wowza.wms.context.Application} - Application name
+				${com.wowza.wms.context.ApplicationInstance} - Application instance name
+			
+			-->
 			<!-- GeolocationConfigFile: absolute path to config file -->
 			<Property>
 				<Name>GeolocationConfigFile</Name>
 				<Value>>${com.wowza.wms.context.VHostConfigHome}/conf/${com.wowza.wms.context.Application}/locationinfo.xml</Value>
 				<Type>String</Type>
 			</Property>
+
+			<!-- If set to True or unset, shuts down Client stream if geoip check fails -->
+			<Property>
+				<Name>GeolocationPlaybackShutdown</Name>
+				<Value>False</Value>
+				<Type>Boolean</Type>
+			</Property>
+
+			<!--
+				GeolocationPlaybackFile
+
+				The parameter should provide a clip or stream which tells the user
+				via video, why he can't access some of the sites content.
+
+				Only used if GeolocationPlaybackShutdown is set to false.
+			-->
+			<Property>
+				<Name>GeolocationPlaybackFile</Name>
+				<Value>mp4:def/Extremists.m4v</Value>
+				<Type>String</Type>
+			</Property>
+
 
 			<!-- GeolocationDebug: turns on/off debugging, default is false
 
