@@ -35,20 +35,21 @@ import com.wowza.wms.request.*;
 
 public class GeoIP extends ModuleBase
 {
-	public static WMSProperties ServerSideParameters;
-	private static long LocationInfoLastModified = 0;
-	private static Document LocationInfo;
+	public WMSProperties ServerSideParameters;
+	private long LocationInfoLastModified = 0;
+	private Document LocationInfo;
 
-	private static String ConfigFile;
-	private static boolean debug = false;
+	private String ConfigFile;
+	private boolean debug = false;
 
 	private static Map<String,Pattern> regex_pool = new HashMap<String,Pattern>();
 
-	private static GeoIPLookupService geoip_lookup;
+	private GeoIPLookupService geoip_lookup;
+
 	private static NetMaskLookupService netmask_lookup;
 
-	private static boolean streamShutdown = true;
-	private static String streamRemap = "";
+	private boolean streamShutdown = true;
+	private String streamRemap = "";
 
 	/** Check if IPAddress is allowed to access streamName */
 	public boolean allowPlayback(String streamName, String IPAddress)
