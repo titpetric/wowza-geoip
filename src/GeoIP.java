@@ -1,6 +1,6 @@
 /*
 
-Tit Petrič, Monotek d.o.o., (cc) 2010, tit.petric@monotek.net
+Tit Petric, Monotek d.o.o., (cc) 2010, tit.petric@monotek.net
 http://creativecommons.org/licenses/by-sa/3.0/
 
 */
@@ -32,6 +32,11 @@ import org.w3c.dom.*;
 // override play
 import com.wowza.wms.amf.*;
 import com.wowza.wms.request.*;
+
+import com.wowza.wms.httpstreamer.cupertinostreaming.httpstreamer.HTTPStreamerSessionCupertino;
+import com.wowza.wms.httpstreamer.sanjosestreaming.httpstreamer.HTTPStreamerSessionSanJose;
+import com.wowza.wms.httpstreamer.smoothstreaming.httpstreamer.HTTPStreamerSessionSmoothStreamer;
+import com.wowza.wms.rtp.model.RTPSession;
 
 public class GeoIP extends ModuleBase
 {
@@ -250,6 +255,67 @@ public class GeoIP extends ModuleBase
 		geoip_lookup = new GeoIPLookupService(GeoIPDatabase);
 		if (!geoip_lookup.GetStatus()) {
 			getLogger().error("geoip.onAppStart: GeoIP LookupService - GeoIPDatabase problem!");
+		}
+	}
+
+	// code by marzipi and shamrock (taken from wowza forum 1978) - copied from hampei
+	public void onHTTPCupertinoStreamingSessionCreate(HTTPStreamerSessionCupertino httpCupertinoStreamingSession)
+	{
+		String ClientIP = httpCupertinoStreamingSession.getIpAddress();
+		String streamName = httpCupertinoStreamingSession.getStreamName();
+
+		String[] streamNameSplit = streamName.split(":");
+		String realStreamName = streamNameSplit.length==1 ? streamNameSplit[0] : streamNameSplit[1];
+		logDebug("geoip.cupertino: Real stream name "+realStreamName);
+		logDebug("geoip.cupertino: IP source "+ClientIP);
+
+		if (!allowPlayback(realStreamName, ClientIP)) {
+			httpCupertinoStreamingSession.rejectSession();
+		}
+	}
+
+	public void onHTTPSmoothStreamingSessionCreate(HTTPStreamerSessionSmoothStreamer httpSmoothStreamingSession)
+	{
+		String ClientIP = httpSmoothStreamingSession.getIpAddress();
+		String streamName = httpSmoothStreamingSession.getStreamName();
+
+		String[] streamNameSplit = streamName.split(":");
+		String realStreamName = streamNameSplit.length==1 ? streamNameSplit[0] : streamNameSplit[1];
+		logDebug("geoip.smooth: Real stream name "+realStreamName);
+		logDebug("geoip.smooth: IP source "+ClientIP);
+
+		if (!allowPlayback(realStreamName, ClientIP)) {
+			httpSmoothStreamingSession.rejectSession();
+		}
+	}
+	
+	public void onHTTPSanjoseStreamingSessionCreate(HTTPStreamerSessionSanJose httpSanJoseStreamingSession)
+	{
+		String ClientIP = httpSanJoseStreamingSession.getIpAddress();
+		String streamName = httpSanJoseStreamingSession.getStreamName();
+
+		String[] streamNameSplit = streamName.split(":");
+		String realStreamName = streamNameSplit.length==1 ? streamNameSplit[0] : streamNameSplit[1];
+		logDebug("geoip.sanjose: Real stream name "+realStreamName);
+		logDebug("geoip.sanjose: IP source "+ClientIP);
+
+		if (!allowPlayback(realStreamName, ClientIP)) {
+			httpSanJoseStreamingSession.rejectSession();
+		}
+	}
+	
+	public void onRTPSessionCreate(RTPSession rtpSession)
+	{
+		String ClientIP = rtpSession.getIp();
+		String streamName = rtpSession.getUri();
+
+		String[] streamNameSplit = streamName.split(":");
+		String realStreamName = streamNameSplit.length==1 ? streamNameSplit[0] : streamNameSplit[1];
+		logDebug("geoip.rtp: Real stream name "+realStreamName);
+		logDebug("geoip.rtp: IP source "+ClientIP);
+
+		if (!allowPlayback(realStreamName, ClientIP)) {
+			rtpSession.rejectSession();
 		}
 	}
 }
