@@ -1,6 +1,6 @@
 /*
 
-Tit Petrič, Monotek d.o.o., (cc) 2010, tit.petric@monotek.net
+Tit Petric, Monotek d.o.o., (cc) 2010, tit.petric@monotek.net
 http://creativecommons.org/licenses/by-sa/3.0/
 
 */
