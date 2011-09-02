@@ -3,6 +3,8 @@
 Tit Petric, Monotek d.o.o., (cc) 2010, tit.petric@monotek.net
 http://creativecommons.org/licenses/by-sa/3.0/
 
+Updated by: William Hetherington, NetroMedia, will@netromedia.com
+
 */
 
 package com.monotek.wms.module;
@@ -145,6 +147,25 @@ public class GeoIP extends ModuleBase
 						if (exceptType.equals("country")) {
 							if (geoip_lookup.ValidateCountry(IPAddress, exceptValue)) {
 								logDebug("    > Validated country ("+exceptValue+")");
+								allowPlayback = true;
+								break;
+							}
+						}
+						else if (exceptType.equals("region")) {
+							String countryName = exceptValue.split(",")[0];
+							String regionName = exceptValue.split(",")[1];
+							if (geoip_lookup.ValidateRegion(IPAddress, countryName, regionName)) {
+								logDebug("    > Validated region ("+exceptValue+")");
+								allowPlayback = true;
+								break;
+							}
+						}
+						else if (exceptType.equals("city")) {
+							String countryName = exceptValue.split(",")[0];
+							String regionName = exceptValue.split(",")[1];
+							String cityName = exceptValue.split(",")[2];
+							if (geoip_lookup.ValidateCity(IPAddress, countryName, regionName, cityName)) {
+								logDebug("    > Validated region ("+exceptValue+")");
 								allowPlayback = true;
 								break;
 							}
