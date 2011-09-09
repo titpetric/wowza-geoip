@@ -84,11 +84,11 @@
 			-->
 
 
-			<!-- GeoIPDatabase: default location: /usr/share/GeoIP/GeoIP.dat
+			<!-- GeoIPDatabase: default location: /usr/share/GeoIP/GeoLiteCity.dat
 
 			<Property>
 				<Name>GeoIPDatabase</Name>
-				<Value>/path/to/your/GeoIP.dat</Value>
+				<Value>/path/to/your/GeoLiteCity.dat</Value>
 				<Type>String</Type>
 			</Property>
 

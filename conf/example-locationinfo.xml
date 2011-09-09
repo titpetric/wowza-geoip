@@ -12,6 +12,10 @@
 		<Except type="ip">192.168.0.0/255.255.0.0</Except>
 		<!-- Except: country = http://www.maxmind.com/app/iso3166 -->
 		<Except type="country">SI</Except>
+		<!-- Except: city = http://www.maxmind.com/GeoIPCity-534-Location.csv -->
+		<Except type="city">CA,BC,Coquitlam</Except>
+		<!-- Except: region = http://www.maxmind.com/regionSample.csv -->
+		<Except type="region">CA,BC</Except>
 	</Location>
 	<!-- type="regex" for regular expression paths -->
 	<Location path="(usa|austria|germany)/" type="regex" restrict="all">
