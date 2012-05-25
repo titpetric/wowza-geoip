@@ -47,7 +47,7 @@
 			<!-- GeolocationConfigFile: absolute path to config file -->
 			<Property>
 				<Name>GeolocationConfigFile</Name>
-				<Value>>${com.wowza.wms.context.VHostConfigHome}/conf/${com.wowza.wms.context.Application}/locationinfo.xml</Value>
+				<Value>${com.wowza.wms.context.VHostConfigHome}/conf/${com.wowza.wms.context.Application}/locationinfo.xml</Value>
 				<Type>String</Type>
 			</Property>
 
