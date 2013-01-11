@@ -310,7 +310,8 @@ public class GeoIP extends ModuleBase
 		}
 	}
 	
-	public void onHTTPSanjoseStreamingSessionCreate(HTTPStreamerSessionSanJose httpSanJoseStreamingSession)
+	// code edited by fcomparini, there's a typo, it was onHTTPSanjoseStreamingSessionCreate and it should be onHTTPSanJoseStreamingSessionCreate
+	public void onHTTPSanJoseStreamingSessionCreate(HTTPStreamerSessionSanJose httpSanJoseStreamingSession)
 	{
 		String ClientIP = httpSanJoseStreamingSession.getIpAddress();
 		String streamName = httpSanJoseStreamingSession.getStreamName();
