@@ -5,7 +5,10 @@ File contains snippets you should add to your Application.xml config.
 Snipets cover module loading, and configuration of module (config locations
 for the GeoIP database, locationinfo.xml and default restrictions)
 
-example-locationinfo.xml
+The important tags are `<Properties>`, and the entry for our module.
+Look for `com.monotek.wms.module.GeoIP`.
+
+geoip.xml
 
 This is the expected config file by the GeoIP module. You can modify
 this as you wish. Suitable for live & vod streams.

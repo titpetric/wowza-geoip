@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<geoip>
+	<!-- geoip module version, also defines xml format -->
+	<version>1.0</version>
+
+	<!-- mode: block|rewrite -->
+	<mode>rewrite</mode>
+
+	<!-- list rewrites, default doesn't have src attribute -->
+	<rewrites>
+		<rewrite app="live">sorry.sdp</rewrite>
+		<rewrite app="vod">mp4:sorry.mp4</rewrite>
+		<rewrite app="front">vod/mp4:sorry.mp4</rewrite>
+	</rewrites>
+
+	<locations>
+		<!-- Location: path = stream name or folder (for vod), restrict = [all|none] -->
+		<location path="sorry.sdp" restrict="none"/>
+		<location path="sorry.mp4" restrict="none"/>
+		<location path="(.+\.sdp|[0-9]+\.mp4)" type="regex" restrict="none">
+			<except type="country">xSI</except>
+			<except type="country">xAT</except>
+			<except type="ip">127.0.0.1</except>
+		</location>
+		<location path="\_.+" type="regex" restrict="none">
+			<except type="country">xAT</except>
+		</location>
+	</locations>
+</geoip>

@@ -1,11 +1,112 @@
 <Root>
 	<Application>
-
-		<!-- snip -->
-
+		<!-- Uncomment to set application level timeout values
+		<ApplicationTimeout>60000</ApplicationTimeout>
+		<PingTimeout>12000</PingTimeout>
+		<ValidationFrequency>8000</ValidationFrequency>
+		<MaximumPendingWriteBytes>0</MaximumPendingWriteBytes>
+		<MaximumSetBufferTime>60000</MaximumSetBufferTime>
+		<MaximumStorageDirDepth>25</MaximumStorageDirDepth>
+		-->
+		<Connections>
+			<AutoAccept>true</AutoAccept>
+			<AllowDomains></AllowDomains>
+		</Connections>
+		<!--
+			StorageDir path variables
+			
+			${com.wowza.wms.AppHome} - Application home directory
+			${com.wowza.wms.ConfigHome} - Configuration home directory
+			${com.wowza.wms.context.VHost} - Virtual host name
+			${com.wowza.wms.context.VHostConfigHome} - Virtual host config directory
+			${com.wowza.wms.context.Application} - Application name
+			${com.wowza.wms.context.ApplicationInstance} - Application instance name
+			
+		-->
+		<Streams>
+			<StreamType>live</StreamType>
+			<StorageDir>${com.wowza.wms.context.VHostConfigHome}/content</StorageDir>
+			<KeyDir>${com.wowza.wms.context.VHostConfigHome}/keys</KeyDir>
+			<!-- LiveStreamPacketizers (separate with commas): cupertinostreamingpacketizer, smoothstreamingpacketizer, sanjosestreamingpacketizer, cupertinostreamingrepeater, smoothstreamingrepeater, sanjosestreamingrepeater -->
+			<LiveStreamPacketizers>smoothstreamingpacketizer,cupertinostreamingpacketizer,sanjosestreamingpacketizer</LiveStreamPacketizers>			
+			<Properties>
+			</Properties>
+		</Streams>
+		<!-- HTTPStreamers (separate with commas): cupertinostreaming, smoothstreaming, sanjosestreaming -->
+		<HTTPStreamers>cupertinostreaming,smoothstreaming,sanjosestreaming</HTTPStreamers>			
+		<SharedObjects>
+			<StorageDir></StorageDir>
+		</SharedObjects>
+		<Client>
+			<IdleFrequency>-1</IdleFrequency>
+			<Access>
+				<StreamReadAccess>*</StreamReadAccess>
+				<StreamWriteAccess>*</StreamWriteAccess>
+				<StreamAudioSampleAccess></StreamAudioSampleAccess>
+				<StreamVideoSampleAccess></StreamVideoSampleAccess>
+				<SharedObjectReadAccess>*</SharedObjectReadAccess>
+				<SharedObjectWriteAccess>*</SharedObjectWriteAccess>
+			</Access>
+		</Client>
+		<RTP>
+			<!-- RTP/Authentication/[type]Methods defined in Authentication.xml. Default setup includes; none, basic, digest -->
+			<Authentication>
+				<PublishMethod>none</PublishMethod>
+				<PlayMethod>none</PlayMethod>
+			</Authentication>
+			<!-- RTP/AVSyncMethod. Valid values are: senderreport, systemclock, rtptimecode -->
+			<AVSyncMethod>senderreport</AVSyncMethod>
+			<MaxRTCPWaitTime>12000</MaxRTCPWaitTime>
+			<IdleFrequency>75</IdleFrequency>
+			<RTSPSessionTimeout>90000</RTSPSessionTimeout>
+			<RTSPMaximumPendingWriteBytes>0</RTSPMaximumPendingWriteBytes>
+			<RTSPBindIpAddress></RTSPBindIpAddress>
+			<RTSPConnectionIpAddress>0.0.0.0</RTSPConnectionIpAddress>
+			<RTSPOriginIpAddress>127.0.0.1</RTSPOriginIpAddress>
+			<IncomingDatagramPortRanges>*</IncomingDatagramPortRanges>
+			<Properties>
+			</Properties>
+		</RTP>
+		<MediaCaster>
+			<Properties>
+			</Properties>
+		</MediaCaster>
+		<MediaReader>
+			<Properties>
+			</Properties>
+		</MediaReader>
+		<MediaWriter>
+			<Properties>
+			</Properties>
+		</MediaWriter>
+		<LiveStreamPacketizer>
+			<Properties>
+			</Properties>
+		</LiveStreamPacketizer>
+		<HTTPStreamer>
+			<Properties>
+			</Properties>
+		</HTTPStreamer>
+		<Repeater>
+			<OriginURL></OriginURL>
+			<QueryString><![CDATA[]]></QueryString>
+		</Repeater> 
 		<Modules>
-
-			<!-- snip -->
+			<Module>
+				<Name>base</Name>
+				<Description>Base</Description>
+				<Class>com.wowza.wms.module.ModuleCore</Class>
+			</Module>
+			<Module>
+				<Name>properties</Name>
+				<Description>Properties</Description>
+				<Class>com.wowza.wms.module.ModuleProperties</Class>
+			</Module>
+			<Module>
+				<Name>logging</Name>
+				<Description>Client Logging</Description>
+				<Class>com.wowza.wms.module.ModuleClientLogging</Class>
+			</Module>
 
 			<Module>
 				<Name>geoip</Name>
@@ -13,28 +114,57 @@
 				<Class>com.monotek.wms.module.GeoIP</Class>
 			</Module>
 
-			<!-- snip -->
+
+			<Module>
+				<Name>ModuleRTMPAuthenticate</Name>
+				<Description>ModuleRTMPAuthenticate</Description>
+				<Class>com.wowza.wms.plugin.security.ModuleRTMPAuthenticate</Class>
+			</Module>
+
+			<Module>
+				<Name>flvplayback</Name>
+				<Description>FLVPlayback</Description>
+				<Class>com.wowza.wms.module.ModuleFLVPlayback</Class>
+			</Module>
+
+			<Module>
+				<Name>ModulePushPublishSimpleExample</Name>
+				<Description>ModulePushPublishSimpleExample</Description>
+				<Class>com.monotek.wms.plugin.pushpublish.ModulePushPublishSimpleExample</Class>
+			</Module>
 
 		</Modules>
-
 		<Properties>
+			<!--
+				GeolocationDefaultRestrict (Integer):
 
-			<!-- snip -->
-
-			<!-- GeolocationDefaultRestrict: 0 = don't restrict by default, 1 = restrict by default -->
+					0 - don't restrict anything by default,
+					1 - restrict everything by default
+			-->
 			<Property>
 				<Name>GeolocationDefaultRestrict</Name>
 				<Value>0</Value>
 				<Type>Integer</Type>
 			</Property>
-			<!-- If GeolocationDefaultRestrict = 1, and xml config is missing/invalid, restrict to this country -->
+			<!--
+				GeolocationDefaultRestrictCountry (String):
+
+					value - ISO 3166 Country Code (See: http://www.maxmind.com/app/iso3166)
+
+				If the xml configuration for the GeoIP plugin is missing or invalid,
+				the GeoIP plugin will restrict to this country listed here.
+			-->
 			<Property>
 				<Name>GeolocationDefaultRestrictCountry</Name>
 				<Value>US</Value>
 				<Type>String</Type>
 			</Property>
 			<!--
-				GeolocationConfigFile path variables
+				GeolocationConfigFile (String):
+
+					value - The absolute filename for the GeoIP config XML.
+
+				The file is expanded with the following variables:
 
 				${com.wowza.wms.AppHome} - Application home directory (test)
 				${com.wowza.wms.ConfigHome} - Configuration home directory (test)
@@ -42,62 +172,71 @@
 				${com.wowza.wms.context.VHostConfigHome} - Virtual host config directory
 				${com.wowza.wms.context.Application} - Application name
 				${com.wowza.wms.context.ApplicationInstance} - Application instance name
-			
+
+				This allows you to configure distinct GeoIP blocking rules for
+				multiple VHosts or Applications.
+
 			-->
-			<!-- GeolocationConfigFile: absolute path to config file -->
 			<Property>
 				<Name>GeolocationConfigFile</Name>
-				<Value>${com.wowza.wms.context.VHostConfigHome}/conf/${com.wowza.wms.context.Application}/locationinfo.xml</Value>
+				<Value>${com.wowza.wms.context.VHostConfigHome}/conf/geoip.xml</Value>
 				<Type>String</Type>
 			</Property>
+			<!--
+				GeolocationPlaybackShutdown (Boolean):
 
-			<!-- If set to True or unset, shuts down Client stream if geoip check fails -->
+					True - Shutdown stream if Client is not in a validated GeoIP territory
+					False - Rewrite stream to the clip defined in GeolocationPlaybackFile
+
+				This property sets the behaviour of the GeoIP plugin and what it does with the
+				client, if the client fails the GeoIP location checks
+
+			-->
 			<Property>
 				<Name>GeolocationPlaybackShutdown</Name>
-				<Value>False</Value>
+				<Value>false</Value>
 				<Type>Boolean</Type>
 			</Property>
-
 			<!--
-				GeolocationPlaybackFile
+				GeolocationPlaybackFile (String):
 
-				The parameter should provide a clip or stream which tells the user
-				via video, why he can't access some of the sites content.
+					value - Path to the clip or stream which tells the user via video,
+					        why he can't access some of the sites content.
 
 				Only used if GeolocationPlaybackShutdown is set to false.
 			-->
 			<Property>
 				<Name>GeolocationPlaybackFile</Name>
-				<Value>mp4:def/Extremists.m4v</Value>
+				<Value>mp4:redirect.mp4</Value>
 				<Type>String</Type>
 			</Property>
+			<!--
+				GeolocationDebug (Boolean):
 
+					True - Turn on debugging
+					False - Turn off debugging (default if not set)
 
-			<!-- GeolocationDebug: turns on/off debugging, default is false
-
+			-->
 			<Property>
 				<Name>GeolocationDebug</Name>
 				<Value>true</Value>
 				<Type>Boolean</Type>
 			</Property>
+			<!--
+				GeoIPDatabase (string):
+
+					value - set location of GeoIP.dat file
+
+				Default location: /usr/share/GeoIP/GeoIP.dat
 
 			-->
-
-
-			<!-- GeoIPDatabase: default location: /usr/share/GeoIP/GeoLiteCity.dat
-
+			<!--
 			<Property>
 				<Name>GeoIPDatabase</Name>
-				<Value>/path/to/your/GeoLiteCity.dat</Value>
+				<Value>/path/to/your/GeoIP.dat</Value>
 				<Type>String</Type>
 			</Property>
-
 			-->
-
-			<!-- snip -->
-
 		</Properties>
-
 	</Application>
-
 </Root>
