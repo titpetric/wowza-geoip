@@ -3,8 +3,6 @@
 Tit Petric, Monotek d.o.o., (cc) 2010, tit.petric@monotek.net
 http://creativecommons.org/licenses/by-sa/3.0/
 
-Updated by: William Hetherington, NetroMedia, will@netromedia.com
-
 */
 
 package com.monotek.wms.module; 
