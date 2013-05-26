@@ -3,8 +3,6 @@
 Tit Petric, Monotek d.o.o., (cc) 2010, tit.petric@monotek.net
 http://creativecommons.org/licenses/by-sa/3.0/
 
-Updated by: William Hetherington, NetroMedia, will@netromedia.com
-
 */
 
 package com.monotek.wms.module;
@@ -35,12 +33,16 @@ import org.w3c.dom.*;
 import com.wowza.wms.amf.*;
 import com.wowza.wms.request.*;
 
+import com.wowza.wms.httpstreamer.model.IHTTPStreamerSession;
+import com.wowza.wms.stream.livepacketizer.ILiveStreamPacketizer;
+import	com.wowza.wms.mediacaster.IMediaCaster;
+
 import com.wowza.wms.httpstreamer.cupertinostreaming.httpstreamer.HTTPStreamerSessionCupertino;
 import com.wowza.wms.httpstreamer.sanjosestreaming.httpstreamer.HTTPStreamerSessionSanJose;
 import com.wowza.wms.httpstreamer.smoothstreaming.httpstreamer.HTTPStreamerSessionSmoothStreamer;
 import com.wowza.wms.rtp.model.RTPSession;
 
-public class GeoIP extends ModuleBase
+public class GeoIP extends ModuleBase implements IMediaStreamNameAliasProvider2
 {
 	public WMSProperties ServerSideParameters;
 	private long LocationInfoLastModified = 0;
@@ -57,6 +59,47 @@ public class GeoIP extends ModuleBase
 
 	private boolean streamShutdown = true;
 	private String streamRemap = "";
+
+	private String streamClientIP = "";
+	private int streamClientId = 0;
+
+	/**
+	 Resolve filename of type "filename.ext" or "type:filename.ext" into "filename.ext".
+	 @note: With more than one : (like "rtsp://host/vod/_definsts/mp4:file.ext", function returns NULL.
+	*/
+	public String resolveFilename(String name)
+	{
+		if (name != null)
+		{
+			String[] nameSplit = name.split(":");
+			if (nameSplit.length == 1) {
+				return nameSplit[0];
+			} else if (nameSplit.length == 2) {
+				return nameSplit[1];
+			}
+		}
+		return null;
+	}
+
+	public String streamRemapFilename(IApplicationInstance appInstance, String streamName)
+	{
+		String appName = appInstance.getApplication().getName();
+		String realStreamName = resolveFilename(streamName);
+		if (LocationInfo != null) {
+			NodeList locations = LocationInfo.getDocumentElement().getElementsByTagName("rewrite");
+			for (int childNum = 0; childNum < locations.getLength(); childNum++) {
+				Element child = (Element)locations.item(childNum);
+				String appPath = child.getAttributes().getNamedItem("app").getNodeValue();
+				if (appPath.equals(appName)) {
+					String remap = child.getFirstChild().getNodeValue();
+					logDebug("Remapping stream to --- " + remap);
+					return remap;
+				}
+			}
+		}
+		return streamRemap;
+	}
+
 
 	/** Check if IPAddress is allowed to access streamName */
 	public boolean allowPlayback(String streamName, String IPAddress)
@@ -89,21 +132,39 @@ public class GeoIP extends ModuleBase
 			LocationInfo = null;
 		}
 
+/*		if (LocationInfo != null) {
+			try {
+				String version = LocationInfo.getDocumentElement().getElementsByTagName("version").item(0).getNodeValue();
+				if (!version.equals("1.0")) {
+					throw new Exception("XML Version mismatch, require 1.0");
+				}
+			} catch (Exception e) {
+				getLogger().warn("geoip.allowPlayback.config: XML Version " + e.toString());
+				LocationInfo = null;
+			}
+		}
+*/
+
 		// log last modified time for updates
 		LocationInfoLastModified = lastModified;
 
-		logDebug("Checking stream: " + streamName + " / IP: " + IPAddress);
+		String realStreamName = resolveFilename(streamName);
 
-		if (LocationInfo != null) {
+		logDebug("Checking stream:");
+		logDebug("\ts1: " + streamName);
+		logDebug("\ts2: " + realStreamName);
+		logDebug("\tip: " + IPAddress);
+
+		if (LocationInfo != null && realStreamName != null && IPAddress != null) {
 			// we have a DOM structure, go trough locations.
-			NodeList locations = LocationInfo.getDocumentElement().getElementsByTagName("Location");
+			NodeList locations = LocationInfo.getDocumentElement().getElementsByTagName("location");
 			for (int childNum = 0; childNum < locations.getLength(); childNum++) {
 				Element child = (Element)locations.item(childNum);
 				String locPath = child.getAttributes().getNamedItem("path").getNodeValue();
 				String locRestrict = child.getAttributes().getNamedItem("restrict").getNodeValue();
 
 				// default: path starts with location name
-				boolean validPath = streamName.startsWith(locPath);
+				boolean validPath = realStreamName.startsWith(locPath);
 
 				// regex paths
 				if (child.getAttributes().getNamedItem("type") != null && child.getAttributes().getNamedItem("type").getNodeValue().equals("regex")) {
@@ -113,7 +174,7 @@ public class GeoIP extends ModuleBase
 						regex_pool.put(locPath, Pattern.compile(locPath));
 					}
 					// match regex
-					validPath = regex_pool.get(locPath).matcher(streamName).find();
+					validPath = regex_pool.get(locPath).matcher(realStreamName).find();
 				}
 
 				if (validPath) {
@@ -122,7 +183,7 @@ public class GeoIP extends ModuleBase
 					allowPlayback = false;
 
 					// get exceptions to base restriction
-					NodeList exceptions = child.getElementsByTagName("Except");
+					NodeList exceptions = child.getElementsByTagName("except");
 					for (int exceptNum = 0; exceptNum < exceptions.getLength(); exceptNum++) {
 						Element child2 = (Element)exceptions.item(exceptNum);
 						String exceptType = child2.getAttributes().getNamedItem("type").getNodeValue();
@@ -188,7 +249,7 @@ public class GeoIP extends ModuleBase
 
 		// Restrict to default country configured in Application.xml
 		String DefaultRestrictCountry = ServerSideParameters.getPropertyStr("GeolocationDefaultRestrictCountry");
-		if (!allowPlayback && geoip_lookup.ValidateCountry(IPAddress, DefaultRestrictCountry)) {
+		if (!allowPlayback && IPAddress != null && geoip_lookup.ValidateCountry(IPAddress, DefaultRestrictCountry)) {
 			allowPlayback = !allowPlayback;
 		}
 
@@ -205,21 +266,9 @@ public class GeoIP extends ModuleBase
 	/** Playback method, overriden */
 	public void play(IClient client, RequestFunction function, AMFDataList params)
 	{
-		String streamName = getParamString(params, PARAM1);
-		String[] streamNameSplit = streamName.split(":");
-		String ClientIP = client.getIp();
-
-		// Extremists.flv vs. mp4:Extremists.mp4
-		String realStreamName = streamNameSplit.length==1 ? streamNameSplit[0] : streamNameSplit[1];
-		if (!allowPlayback(realStreamName, ClientIP)) {
-			if (streamShutdown) {
-				client.setShutdownClient(true);
-				return;
-			}
-			params.set(PARAM1, streamRemap);
-			logDebug("play - rewriting stream to "+streamRemap);
-		}
-
+		// get client ip for certain resolvePlayAlias work-arounds
+		streamClientIP = client.getIp();
+		streamClientId = client.getClientId();
 		ModuleCore.play(client, function, params);
 	}
 
@@ -231,9 +280,12 @@ public class GeoIP extends ModuleBase
 		}
 	}
 
-	public void onAppStart(IApplicationInstance appInstance) {
+	public void onAppStart(IApplicationInstance appInstance)
+	{
 		String fullname = appInstance.getApplication().getName() + "/" + appInstance.getName();
 		getLogger().info("geoip.onAppStart: " + fullname);
+
+		appInstance.setStreamNameAliasProvider(this);
 
 		// Extract the parameters
 		ServerSideParameters = appInstance.getProperties();
@@ -279,65 +331,98 @@ public class GeoIP extends ModuleBase
 		}
 	}
 
-	// code by marzipi and shamrock (taken from wowza forum 1978) - copied from hampei
-	public void onHTTPCupertinoStreamingSessionCreate(HTTPStreamerSessionCupertino httpCupertinoStreamingSession)
+
+	public String resolvePlayAlias(IApplicationInstance appInstance, String name, IClient client)
 	{
-		String ClientIP = httpCupertinoStreamingSession.getIpAddress();
-		String streamName = httpCupertinoStreamingSession.getStreamName();
-
-		String[] streamNameSplit = streamName.split(":");
-		String realStreamName = streamNameSplit.length==1 ? streamNameSplit[0] : streamNameSplit[1];
-		logDebug("geoip.cupertino: Real stream name "+realStreamName);
-		logDebug("geoip.cupertino: IP source "+ClientIP);
-
-		if (!allowPlayback(realStreamName, ClientIP)) {
-			httpCupertinoStreamingSession.rejectSession();
+		getLogger().info("geo.resolve play flash: " + appInstance.getApplication().getName() + "/" + name);
+		if (!allowPlayback(name, client.getIp())) {
+			if (streamShutdown) {
+				client.setShutdownClient(true);
+			}
+			return streamRemapFilename(appInstance, name);
 		}
+		return name;
 	}
 
-	public void onHTTPSmoothStreamingSessionCreate(HTTPStreamerSessionSmoothStreamer httpSmoothStreamingSession)
+	public String resolvePlayAlias(IApplicationInstance appInstance, String name, IHTTPStreamerSession httpSession)
 	{
-		String ClientIP = httpSmoothStreamingSession.getIpAddress();
-		String streamName = httpSmoothStreamingSession.getStreamName();
-
-		String[] streamNameSplit = streamName.split(":");
-		String realStreamName = streamNameSplit.length==1 ? streamNameSplit[0] : streamNameSplit[1];
-		logDebug("geoip.smooth: Real stream name "+realStreamName);
-		logDebug("geoip.smooth: IP source "+ClientIP);
-
-		if (!allowPlayback(realStreamName, ClientIP)) {
-			httpSmoothStreamingSession.rejectSession();
+		getLogger().info("geo.resolve play HTTPSession: " + appInstance.getApplication().getName() + "/" + name);
+		getLogger().info(" -- httpSession " + httpSession);
+		if (httpSession == null) {
+			return name;
 		}
+		String clientIp = httpSession.getIpAddress();
+		if (clientIp == null) {
+			getLogger().info(" -- null ip");
+		}
+		if (!allowPlayback(name, clientIp)) {
+			if (streamShutdown) {
+				httpSession.rejectSession();
+			}
+			return streamRemapFilename(appInstance, name);
+		}
+		return name;
 	}
-	
-	// code edited by fcomparini, there's a typo, it was onHTTPSanjoseStreamingSessionCreate and it should be onHTTPSanJoseStreamingSessionCreate
-	public void onHTTPSanJoseStreamingSessionCreate(HTTPStreamerSessionSanJose httpSanJoseStreamingSession)
+
+	public String resolvePlayAlias(IApplicationInstance appInstance, String name, RTPSession rtpSession)
 	{
-		String ClientIP = httpSanJoseStreamingSession.getIpAddress();
-		String streamName = httpSanJoseStreamingSession.getStreamName();
-
-		String[] streamNameSplit = streamName.split(":");
-		String realStreamName = streamNameSplit.length==1 ? streamNameSplit[0] : streamNameSplit[1];
-		logDebug("geoip.sanjose: Real stream name "+realStreamName);
-		logDebug("geoip.sanjose: IP source "+ClientIP);
-
-		if (!allowPlayback(realStreamName, ClientIP)) {
-			httpSanJoseStreamingSession.rejectSession();
+		getLogger().info("geo.resolve play RTPSession: " + appInstance.getApplication().getName() + "/" + name);
+		if (!allowPlayback(name, rtpSession.getIp())) {
+			if (streamShutdown) {
+				rtpSession.rejectSession();
+			}
+			return streamRemapFilename(appInstance, name);
 		}
+		return name;
 	}
-	
-	public void onRTPSessionCreate(RTPSession rtpSession)
+
+	public String resolvePlayAlias(IApplicationInstance appInstance, String name, ILiveStreamPacketizer liveStreamPacketizer)
 	{
-		String ClientIP = rtpSession.getIp();
-		String streamName = rtpSession.getUri();
-
-		String[] streamNameSplit = streamName.split(":");
-		String realStreamName = streamNameSplit.length==1 ? streamNameSplit[0] : streamNameSplit[1];
-		logDebug("geoip.rtp: Real stream name "+realStreamName);
-		logDebug("geoip.rtp: IP source "+ClientIP);
-
-		if (!allowPlayback(realStreamName, ClientIP)) {
-			rtpSession.rejectSession();
+		getLogger().info("geo.resolve play LiveStreamPacketizer: " + appInstance.getApplication().getName() + "/" + name);
+		if (!allowPlayback(name, streamClientIP)) {
+			if (streamShutdown) {
+				liveStreamPacketizer.shutdown();
+			}
+			return streamRemapFilename(appInstance, name);
 		}
+		return name;
+	}
+
+	public String resolveStreamAlias(IApplicationInstance appInstance, String name, IMediaCaster mediaCaster)
+	{
+		getLogger().info("geo.resolve stream Mediacaster: " + appInstance.getApplication().getName() + "/" + name);
+		if (!allowPlayback(name, mediaCaster.getStream().getClient().getIp())) {
+			if (streamShutdown) {
+				mediaCaster.shutdown(false);
+			}
+			return streamRemapFilename(appInstance, name);
+		}
+		return name;
+	}
+
+	public String resolveStreamAlias(IApplicationInstance appInstance, String name)
+	{
+		getLogger().info("geo.resolve stream generic: " + appInstance.getApplication().getName() + "/" + name);
+		if (!allowPlayback(name, streamClientIP)) {
+			if (streamShutdown) {
+				IClient client = appInstance.getClientById(streamClientId);
+				client.setShutdownClient(true);
+			}
+			return streamRemapFilename(appInstance, name);
+		}
+		return name;
+	}
+
+	public String resolvePlayAlias(IApplicationInstance appInstance, String name)
+	{
+		getLogger().info("geo.resolve play generic: " + appInstance.getApplication().getName() + "/" + name);
+		if (!allowPlayback(name, streamClientIP)) {
+			if (streamShutdown) {
+				IClient client = appInstance.getClientById(streamClientId);
+				client.setShutdownClient(true);
+			}
+			return streamRemapFilename(appInstance, name);
+		}
+		return name;
 	}
 }
