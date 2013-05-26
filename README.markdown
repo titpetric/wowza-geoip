@@ -37,4 +37,11 @@ You must copy this file into your Wowza installation lib folder, usually
 located under /usr/lib/WowzaMediaServer/lib. You can then use the geoip
 plugin in accordance with the documentation.
 
+Thanks
+------
 
+Thanks go to the following people:
+
+Gorazd Zagar
+William Hetherington
+Richard Lanham
