@@ -11,16 +11,26 @@
 	<property name="build.dir" location="build"/>
 	<property name="jar.filename" value="geoip.jar"/>
 
-	<!-- chdir to scripts/ and run ./get_maxmind_geoip_api to download and extract needed files. -->
-	<target name="geoip">
-		<javac srcdir="scripts/GeoIPJava-1.2.3/source" debug="true" destdir="${build.dir}" includeantruntime="false"/>
+	<target name="-check-geoip-api" description="Checking existence of GeoIP Java API">
+		<available file="scripts/GeoIPJava-1.2.8" type="dir" property="geoip.exists"/>
 	</target>
 
-	<target name="compile" depends="geoip">
+	<target name="geoip" depends="get-geoip-src" description="Using GeoIP Java API">
+		<javac srcdir="scripts/GeoIPJava-1.2.8/source" debug="true" destdir="${build.dir}" includeantruntime="false"/>
+	</target>
+
+	<target name="get-geoip-src" depends="-check-geoip-api" unless="geoip.exists" description="Fetching GeoIP Java API">
+		<get src="http://geolite.maxmind.com/download/geoip/api/java/GeoIPJava-1.2.8.zip" dest="geoip.zip"/>
+		<unzip src="geoip.zip" dest="scripts"/>
+		<delete file="geoip.zip"/>
+	</target>
+
+	<target name="compile" depends="geoip" description="Compiling Wowza GeoIP module">
 		<javac srcdir="${src.dir}" debug="true" destdir="${build.dir}" includeantruntime="false">
 			<classpath>
 				<pathelement path="${linux.wowza.lib.dir}/wms-server.jar" />
-				<pathelement path="${linux.wowza.lib.dir}/log4j-1.2.16.jar" />
+				<!-- the following file is shipped by wowza and you might need to update version by hand -->
+				<pathelement path="${linux.wowza.lib.dir}/log4j-1.2.17.jar" />
 				<pathelement path="${linux.wowza.lib.dir}/wms-httpstreamer-cupertinostreaming.jar" />
 				<pathelement path="${linux.wowza.lib.dir}/wms-httpstreamer-sanjosestreaming.jar" />
 				<pathelement path="${linux.wowza.lib.dir}/wms-httpstreamer-smoothstreaming.jar" />
@@ -30,8 +40,8 @@
 		</javac>
 	</target>
 
-	<target name="jar" depends="compile">
-		<jar jarfile="${linux.wowza.lib.dir}/${jar.filename}">
+	<target name="jar" depends="compile" description="Linking Wowza GeoIP module">
+		<jar jarfile="lib/${jar.filename}">
 			<fileset dir="${build.dir}">
 			</fileset>
 		</jar>
