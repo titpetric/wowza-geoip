@@ -20,7 +20,7 @@
 		<javac srcdir="${src.dir}" debug="true" destdir="${build.dir}" includeantruntime="false">
 			<classpath>
 				<pathelement path="${linux.wowza.lib.dir}/wms-server.jar" />
-				<pathelement path="${linux.wowza.lib.dir}/log4j-1.2.16.jar" />
+				<pathelement path="${linux.wowza.lib.dir}/log4j-1.2.17.jar" />
 				<pathelement path="${linux.wowza.lib.dir}/wms-httpstreamer-cupertinostreaming.jar" />
 				<pathelement path="${linux.wowza.lib.dir}/wms-httpstreamer-sanjosestreaming.jar" />
 				<pathelement path="${linux.wowza.lib.dir}/wms-httpstreamer-smoothstreaming.jar" />
