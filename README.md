@@ -1,6 +1,6 @@
 # wowza-geoip
 
-Warning: this plugin is out of date. There's a new commercial version available for Wowza 4.5.0+. Please consult my [Wowza products list](https://scene-si.org/products/wowza/)
+Warning: this plugin is out of date. There's a new commercial version available for Wowza 4.5.0+. Please consult my [Wowza products list](https://scene-si.org/products/wowza/) and consider purchasing it if you need GeoIP blocking/rewriting support. Full documentation is available in the same location.
 
 # Description
 
