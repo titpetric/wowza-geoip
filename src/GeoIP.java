@@ -93,6 +93,7 @@ public class GeoIP extends ModuleBase
 		LocationInfoLastModified = lastModified;
 
 		logDebug("Checking stream: " + streamName + " / IP: " + IPAddress);
+		logDebug("IP Source " + geoip_lookup.getLocation(IPAddress));
 
 		if (LocationInfo != null) {
 			// we have a DOM structure, go trough locations.
@@ -151,21 +152,11 @@ public class GeoIP extends ModuleBase
 								break;
 							}
 						}
-						else if (exceptType.equals("region")) {
-							String countryName = exceptValue.split(",")[0];
-							String regionName = exceptValue.split(",")[1];
-							if (geoip_lookup.ValidateRegion(IPAddress, countryName, regionName)) {
-								logDebug("    > Validated region ("+exceptValue+")");
-								allowPlayback = true;
-								break;
-							}
-						}
 						else if (exceptType.equals("city")) {
 							String countryName = exceptValue.split(",")[0];
-							String regionName = exceptValue.split(",")[1];
-							String cityName = exceptValue.split(",")[2];
-							if (geoip_lookup.ValidateCity(IPAddress, countryName, regionName, cityName)) {
-								logDebug("    > Validated region ("+exceptValue+")");
+							String cityName = exceptValue.split(",")[1];
+							if (geoip_lookup.ValidateCity(IPAddress, countryName, cityName)) {
+								logDebug("    > Validated city ("+exceptValue+")");
 								allowPlayback = true;
 								break;
 							}
@@ -272,7 +263,7 @@ public class GeoIP extends ModuleBase
 		netmask_lookup = new NetMaskLookupService();
 
 		// Configure our GeoIP lookup service
-		String GeoIPDatabase = ServerSideParameters.getPropertyStr("GeoIPDatabase","/usr/share/GeoIP/GeoIP.dat");
+		String GeoIPDatabase = ServerSideParameters.getPropertyStr("GeoIPDatabase","/usr/share/GeoIP/GeoLite2-City.mmdb");
 		geoip_lookup = new GeoIPLookupService(GeoIPDatabase);
 		if (!geoip_lookup.GetStatus()) {
 			getLogger().error("geoip.onAppStart: GeoIP LookupService - GeoIPDatabase problem!");

@@ -1,31 +1,39 @@
 <?xml version="1.0"?>
 <project name="GeoBlockingWS" default="jar">
-	
+
 	<property environment="env"/>
 
-	<property name="app.home" value="com.monotek.wms.module.GeoIP"/>
+	<property name="app.home" value="com.monotek.wms.module.GeoIP2"/>
 
 	<property name="linux.wowza.lib.dir" value="/usr/local/WowzaMediaServer/lib"/>
-	
+
 	<property name="src.dir" location="src"/>
 	<property name="build.dir" location="build"/>
-	<property name="jar.filename" value="geoip.jar"/>
+	<property name="jar.filename" value="geoip2.jar"/>
 
-	<!-- chdir to scripts/ and run ./get_maxmind_geoip_api to download and extract needed files. -->
-	<target name="geoip">
-		<javac srcdir="scripts/GeoIPJava-1.2.3/source" debug="true" destdir="${build.dir}" includeantruntime="false"/>
-	</target>
-
-	<target name="compile" depends="geoip">
+	<target name="compile">
 		<javac srcdir="${src.dir}" debug="true" destdir="${build.dir}" includeantruntime="false">
 			<classpath>
 				<pathelement path="${linux.wowza.lib.dir}/wms-server.jar" />
-				<pathelement path="${linux.wowza.lib.dir}/log4j-1.2.16.jar" />
+				<pathelement path="${linux.wowza.lib.dir}/log4j-1.2.17.jar" />
 				<pathelement path="${linux.wowza.lib.dir}/wms-httpstreamer-cupertinostreaming.jar" />
 				<pathelement path="${linux.wowza.lib.dir}/wms-httpstreamer-sanjosestreaming.jar" />
 				<pathelement path="${linux.wowza.lib.dir}/wms-httpstreamer-smoothstreaming.jar" />
 				<pathelement path="${linux.wowza.lib.dir}/wms-stream-rtp.jar" />
-			</classpath>
+
+                <!-- geoip2-java dependencies -->
+                <pathelement path="lib/commons-codec-1.10.jar" />
+                <pathelement path="lib/commons-logging-1.2.jar" />
+                <pathelement path="lib/geoip2-2.12.0.jar" />
+                <pathelement path="lib/geoip2-2.12.0-javadoc.jar" />
+                <pathelement path="lib/geoip2-2.12.0-sources.jar" />
+                <pathelement path="lib/httpclient-4.5.5.jar" />
+                <pathelement path="lib/httpcore-4.4.9.jar" />
+                <pathelement path="lib/jackson-annotations-2.9.5.jar" />
+                <pathelement path="lib/jackson-core-2.9.5.jar" />
+                <pathelement path="lib/jackson-databind-2.9.5.jar" />
+                <pathelement path="lib/maxmind-db-1.2.2.jar" />
+            </classpath>
 			<compilerarg value="-Xlint:unchecked"/>
 		</javac>
 	</target>
@@ -36,5 +44,4 @@
 			</fileset>
 		</jar>
 	</target>
-	
 </project>
