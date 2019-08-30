@@ -9,21 +9,32 @@ Updated by: William Hetherington, NetroMedia, will@netromedia.com
 
 package com.monotek.wms.module; 
 
-import com.maxmind.geoip.*;
+import com.maxmind.geoip2.*;
+import com.maxmind.db.*;
+import java.io.File;
+import java.net.InetAddress;
+import com.maxmind.geoip2.model.*;
+import com.maxmind.geoip2.record.*;
+import com.maxmind.db.*;
 
 /** Takes care of GeoIP database lookups for our purposes */
 class GeoIPLookupService
 {
 	/** Static GeoIP lookup object and service status */
-	private LookupService myLookupService;
 	private boolean myServiceStatus;
+	private DatabaseReader reader;
 
 	/** Constructor */
 	public GeoIPLookupService(String GeoIPDatabase)
 	{
 		myServiceStatus = true;
+		File database;
 		try {
-			myLookupService = new LookupService(GeoIPDatabase, LookupService.GEOIP_MEMORY_CACHE);
+			database = new File(GeoIPDatabase);
+
+			// Using CHMCache, lookup performance is significantly
+			// improved at the cost of a small (~2MB) memory overhead.
+			reader = new DatabaseReader.Builder(database).withCache(new CHMCache()).build();
 		} catch (Exception e) {
 			myServiceStatus = false;
 		}
@@ -38,46 +49,54 @@ class GeoIPLookupService
 	/** Validate Country code against IPAdress's country code */
 	public boolean ValidateCountry(String IPAddress, String CountryName)
 	{
-		String IPCountryName = "--";
-		try {
-			//IPCountryCode = myLookupService.getCountry(IPAddress).getCode();
-			Location myLocation = myLookupService.getLocation(IPAddress);
-			IPCountryName = myLocation.countryCode;
+        String IPCountryName = "";
+        try {
+            InetAddress ipAddress = InetAddress.getByName(IPAddress);
+            CityResponse response = reader.city(ipAddress);
+
+            Country country = response.getCountry();
+            IPCountryName = country.getIsoCode();
 		} catch (Exception e) {
 			return false;
 		}
 		return IPCountryName.equals(CountryName);
 	}
-	
-	/** Validate Country & Region code */
-	public boolean ValidateRegion(String IPAddress, String CountryName, String RegionName)
-	{
-		String IPCountryName = "";
-		String IPRegionName = "";
-		try {
-			Location myLocation = myLookupService.getLocation(IPAddress);
-			IPCountryName = myLocation.countryCode;
-			IPRegionName = myLocation.region;
-		} catch (Exception e) {
-			return false;
-		}
-		return IPCountryName.equals(CountryName) && IPRegionName.equals(RegionName);
-	}
-	
+
+	public String getLocation(String IPAddress) {
+        String IPCountryName = "";
+        String IPCityName = "";
+        try {
+            InetAddress ipAddress = InetAddress.getByName(IPAddress);
+            CityResponse response = reader.city(ipAddress);
+
+            Country country = response.getCountry();
+            City city = response.getCity();
+            IPCountryName = country.getIsoCode();
+            IPCityName = city.getName();
+        } catch (Exception e) {
+            return "Could not locate";
+        }
+        return "Country: " + IPCountryName + " City: " + IPCityName;
+
+    }
+
 	/** Validate a city */
-	public boolean ValidateCity(String IPAddress, String CountryName, String RegionName, String CityName)
+	public boolean ValidateCity(String IPAddress, String CountryName, String CityName)
 	{
 		String IPCountryName = "";
-		String IPRegionName = "";
 		String IPCityName = "";
 		try {
-			Location myLocation = myLookupService.getLocation(IPAddress);
-			IPCountryName = myLocation.countryCode;
-			IPRegionName = myLocation.region;
-			IPCityName = myLocation.city;
+
+			InetAddress ipAddress = InetAddress.getByName(IPAddress);
+			CityResponse response = reader.city(ipAddress);
+
+			Country country = response.getCountry();
+			City city = response.getCity();
+			IPCountryName = country.getIsoCode();
+			IPCityName = city.getName();
 		} catch (Exception e) {
 			return false;
 		}
-		return IPCountryName.equals(CountryName) && IPRegionName.equals(RegionName) && IPCityName.equals(CityName);
+		return IPCountryName.equals(CountryName) && IPCityName.equals(CityName);
 	}
 }

@@ -1,5 +1,10 @@
 #!/bin/sh
-# -- get the 1.2.3 version of the java api
-wget http://geolite.maxmind.com/download/geoip/api/java/GeoIPJava-1.2.3.zip
-unzip GeoIPJava-1.2.3.zip
+
+# -- get the GeoIP2-Java v2.12.0
+# and its dependecies
+wget https://github.com/maxmind/GeoIP2-java/releases/download/v2.12.0/geoip2-2.12.0-with-dependencies.zip
+unzip geoip2-2.12.0-with-dependencies.zip
 rm *zip
+mkdir ../lib
+mv geoip2-2.12.0/lib/* ../lib
+rm -Rf geoip2-2.12.0

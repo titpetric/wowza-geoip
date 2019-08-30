@@ -1,13 +1,42 @@
-# wowza-geoip
+# Wowza-GeoIP2
 
-Warning: this plugin is out of date. There's a new commercial version available for Wowza 4.5.0+. Please consult my [Wowza products list](https://scene-si.org/products/wowza/) and consider purchasing it if you need GeoIP blocking/rewriting support. Full documentation is available in the same location.
+Forked from https://github.com/titpetric/wowza-geoip
+
+This Wowza plugin is suitable for GeoIP2.
+Tested with Java 7 and Wowza Streaming Engine 3.6.3
+
+Warning: This plugin is NOT tested with Wowza Streaming Engine 4
 
 # Description
 
-This is a server side module for Wowza Media Server 2.1.0+
-allowing you to limig live & vod streams to one or many
-geographic locations, based on Maxmind's GeoIP API.
+This plugin will check the user's IP and block if the user is located in the restricted location.
 
-The locations you wish to limit are specified in a
-separate config xml file, which is reloaded on each
-change, so it doesn't require a Wowza server restart.
+You can block the streaming based on their:
+- IP address
+- Country
+- City
+
+Please refer to `conf/example-locationinfo.xml` for example.
+
+# How to Compile
+
+Make sure you compile this package in your Wowza Streaming Engine server.
+ 
+1. Run the script to download dependencies lib
+    ```
+    cd scripts
+    ./get_maxmind_geoip_api
+    ``` 
+2. Compile using ANT
+    ```$bash
+    cd git-dir
+    ant jar
+    ```
+3. Voila!
+
+# How to use
+
+1. Copy Maxmind GeoIP2 into `/usr/local/WowzaMediaServer/`
+2. Restart you wowza 
+3. Write your `locationinfo.xml` file for your application
+4. Voila!
